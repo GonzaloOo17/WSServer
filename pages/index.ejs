@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Orbis IoT API Rest</title>
+    <link rel='stylesheet' href='css/styles.css' />
+    <link rel='stylesheet' href='css/lib/bootstrap.min.css' />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0"
+        crossorigin="anonymous"></script>
+
+    <script></script>
+</head>
+
+<body>
+    <header>
+
+    </header>
+    <main style="width:100%;     
+        height: calc(100% - 56px);
+        top: 56px;
+        position: absolute;
+        overflow-x: hidden;">
+        <div class="container-lg mt-4">
+            <div class="d-flex justify-content-center">
+                <div class="text-center">
+                    <h1>Logs</h1>
+                    <p>Seleccione el Número de serie del dispositivo</p>
+                </div>
+            </div>
+            <div class="row mt-5">
+                <div class="card col-xl-6 col-sm-10 col-md-8 m-auto p-4 alert alert-dark">
+                    <form id="formElem" class="form form-group">
+
+                        <div class="form-group">
+                            <label for="">Número de serie:</label>
+                            <input id="select-serial" type="text" class="form-control">
+
+                            </input>
+                        </div>
+
+                        <div class="d-flex justify-content-center mt-3">
+                            <button class="btn btn-primary" type="button" onclick="getLogsBySerial()">Get logs</button>
+                        </div>
+                    </form>
+                    <table id="table-logs">
+
+                    </table>
+                    <div class="mt-3 d-none" role="status" id="loading-request">
+                        <span class="text-bold">Loading...</span>
+                    </div>
+                    <div class="alert alert-success mt-3 d-none" role="alert" id="alert-success">
+                        Versión registrada con éxito
+                    </div>
+                    <div class="alert alert-danger mt-3 d-none" role="alert" id="alert-error">
+                        Ha ocurrido un error
+                    </div>
+                    <div class="alert alert-warning mt-3 d-none" role="alert" id="alert-warning">
+                        Esta versión ya estaba registrada. Se actualizó el binario pero no los módulos.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    <footer>
+
+    </footer>
+    <script src="http://localhost:8888/socket.io/socket.io.js"></script>
+
+    <script>
+
+        var socket = io('ws://localhost:8888');
+
+        var table = document.getElementById('table-logs');
+
+        socket.on('log', (message) => {
+            console.log(message);
+            let jsonMessage = JSON.parse(message);
+            table.innerHTML += `<tr>
+                            <td>${jsonMessage.date}</td>
+                            <td>${jsonMessage.message}</td>
+                            <td>${jsonMessage.serial}</td>
+                        </tr>`
+        })
+
+        function getLogsBySerial() {
+            table.innerHTML = '';
+            let serial = document.getElementById('select-serial').value;
+            console.log('Change serial to: ', serial);
+            socket.emit('change-serial', serial);
+
+        }
+
+
+
+    </script>
+</body>
+
+
+</html>

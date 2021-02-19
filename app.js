@@ -6,7 +6,7 @@ var app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http, {
   cors: {
-    origin: "http://localhost:4200",
+    origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
@@ -33,44 +33,60 @@ app.get('/logger', function (req, res) {
 
 let usersFront;
 let generalSocket;
-
+let messagesCount=0;
+let devicesConnected=[];
+let socketsConnected = [];
 // --- WS SERVER ---
 const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 8083 });
+const wss = new WebSocket.Server({ noServer: true });
 
 wss.on('connection', function connection(ws, req) {
 
-  console.log('user connected')
+  console.log('--> DEVICE CONNECTED')
 
   // /logger
   let serial = req.url.substring(8);
-  console.log("url: ", serial);
+  //console.log("url: ", serial);
 
-  ws.on('message', function incoming(message) {
-    console.log('received: %s', message, ', from: ', serial);
+  socketsConnected.push({
+    serial,
+    socket: ws
+  });
+  devicesConnected.push(serial);
+  console.log(devicesConnected);
+
+  ws.on('message', (message) => {
+    messagesCount++;
+    if(messagesCount%100==0)
+      console.log('Received a total of: ', messagesCount, ' from ', devicesConnected.length, ' devices')
+
+    // console.log(typeof message);
+    // console.log('received: %s', message, ', from: ', serial);
     if (generalSocket) {
-      generalSocket.broadcast.to('serial-' + serial).emit('log', message);
+      generalSocket.broadcast.to('serial-' + serial).emit('log', ab2str(message));
     }
 
     //io.emit('log', { id: message });
   });
 
-  ws.on('disconnection', function incoming() {
-    console.log('Device disconnected');
+  ws.on('close', () => {
+    let socketD = socketsConnected.find(socket=>socket.socket==ws);
+    let serialD = socketD.serial;
+    console.log('--> DEVICE ' + serialD + ' DISCONNECTED');
+    devicesConnected.splice(serialD,1);
+    socketsConnected.splice(socketD,1);
   })
 
-  ws.send('something');
+  ws.send('Hello from server');
 });
 
 
 // --- WS FRONT ---
-
-
 io.on('connection', (socket) => {
+  console.log('--> USER CONNECTED');
+
   if (!generalSocket)
     generalSocket = socket;
-
-  console.log('a user connected');
 
   socket.on('change-serial', (serial) => {
     console.log(serial);
@@ -82,13 +98,31 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', (socket) => {
-    console.log('user disconnected');
+    console.log('--> USER DISCONNECTED');
   });
-
 });
 
+const url = require('url');
+http.on('upgrade', function upgrade(request, socket, head) {
+  const pathname = url.parse(request.url).pathname;
+  console.log(pathname);
 
+  if (pathname.startsWith('/logger')) {
+    wss.handleUpgrade(request, socket, head, function done(ws) {
+      wss.emit('connection', ws, request);
+    });
+  } else if (pathname.startsWith('/front') || pathname.startsWith('/socket.io')) {
+    // SOCKET IO RUNNING
+  } else {
+    socket.destroy();
+  }
+});
 
-http.listen(8888, () => {
-  console.log(`Example app listening at http://localhost:8888`)
+function ab2str(buf) {
+  return String.fromCharCode.apply(null, new Uint16Array(buf));
+}
+
+let port = 8080;
+http.listen(8080, () => {
+  console.log(`Socket server listening at ws://188.208.218.221:${port}`)
 })

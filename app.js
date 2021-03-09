@@ -40,6 +40,8 @@ let socketsConnected = [];
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ noServer: true });
 
+let devicesConnected=[];
+
 wss.on('connection', function connection(ws, req) {
 
   console.log('--> DEVICE CONNECTED')

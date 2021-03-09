@@ -36,6 +36,7 @@ let generalSocket;
 let messagesCount=0;
 let devicesConnected=[];
 let socketsConnected = [];
+
 // --- WS SERVER ---
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ noServer: true });
@@ -46,7 +47,7 @@ wss.on('connection', function connection(ws, req) {
 
   console.log('--> DEVICE CONNECTED')
 
-  // /logger
+  // /logger/{serial}
   let serial = req.url.substring(8);
   //console.log("url: ", serial);
 
@@ -61,14 +62,12 @@ wss.on('connection', function connection(ws, req) {
     messagesCount++;
     if(messagesCount%100==0)
       console.log('Received a total of: ', messagesCount, ' from ', devicesConnected.length, ' devices')
-
     // console.log(typeof message);
     // console.log('received: %s', message, ', from: ', serial);
+
     if (generalSocket) {
       generalSocket.broadcast.to('serial-' + serial).emit('log', ab2str(message));
     }
-
-    //io.emit('log', { id: message });
   });
 
   ws.on('close', () => {
@@ -100,6 +99,9 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', (socket) => {
+    // socket.rooms.forEach((room) => {
+    //   socket.leave(room);
+    // })
     console.log('--> USER DISCONNECTED');
   });
 });
